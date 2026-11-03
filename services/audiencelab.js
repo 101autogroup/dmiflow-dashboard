@@ -20,22 +20,24 @@ function lowerKeys(obj) {
   return out;
 }
 
-function firstVal(v) {
+function firstVal(v, splitList = false) {
   if (v == null) return '';
-  if (Array.isArray(v)) return firstVal(v[0]);
+  if (Array.isArray(v)) return firstVal(v[0], splitList);
   if (typeof v === 'object') return '';
   const s = String(v).trim();
   // AudienceLab sends comma-separated lists for multi-value fields (emails, phones)
-  return s.split(',')[0].trim();
+  return splitList ? s.split(',')[0].trim() : s;
 }
 
-function pick(lk, keys) {
+function pick(lk, keys, splitList = false) {
   for (const k of keys) {
-    const v = firstVal(lk[k]);
+    const v = firstVal(lk[k], splitList);
     if (v) return v;
   }
   return '';
 }
+
+const pickList = (lk, keys) => pick(lk, keys, true);
 
 function toDate(v) {
   if (!v) return null;
@@ -62,12 +64,16 @@ function normalizeEvent(raw) {
   const all = { ...top, ...res }; // allow flat payloads too
 
   const pixelId = firstVal(top.pixel_id || top.pixelid || top.pixel);
-  const email = pick(all, ['personal_emails', 'personal_email', 'email', 'business_email', 'business_emails', 'emails']).toLowerCase();
-  const hem = firstVal(top.hem_sha256 || top.hem || res.sha256_personal_email || '');
+  const fallbackKey = [pick(all, ['first_name', 'firstname']), pick(all, ['last_name', 'lastname']),
+    pickList(all, ['mobile_phone', 'personal_phone', 'direct_number', 'phone']), pick(all, ['personal_zip', 'zip'])]
+    .filter(Boolean).join('|').toLowerCase();
+  const email = pickList(all, ['personal_emails', 'personal_email', 'personal_verified_emails', 'email', 'business_email', 'business_emails', 'business_verified_emails', 'emails']).toLowerCase();
+  const hem = firstVal(top.hem_sha256 || top.hem || top.sha256_personal_email || res.sha256_personal_email || '');
   const ip = firstVal(top.ip_address || top.ip || '');
-  const personKey = hem || email || (ip ? `ip:${ip}` : '');
+  const personKey = hem || email || (fallbackKey ? `p:${fallbackKey}` : '') || (ip ? `ip:${ip}` : '');
 
-  const at = toDate(top.event_timestamp || top.timestamp || top.activity_end_date || top.activity_start_date) || new Date();
+  const at = toDate(top.event_timestamp || top.timestamp || top.activity_end_date || top.activity_start_date ||
+    top.last_seen || top.last_visit || top.created_at || top.date || top.event_date) || new Date();
 
   return {
     pixelId,
@@ -77,7 +83,7 @@ function normalizeEvent(raw) {
       firstName: pick(all, ['first_name', 'firstname']),
       lastName: pick(all, ['last_name', 'lastname']),
       email,
-      phone: pick(all, ['mobile_phone', 'personal_phone', 'direct_number', 'phone', 'company_phone']),
+      phone: pickList(all, ['mobile_phone', 'personal_phone', 'direct_number', 'phone', 'company_phone']),
       address: pick(all, ['personal_address', 'address', 'street']),
       city: pick(all, ['personal_city', 'city', 'company_city']),
       state: pick(all, ['personal_state', 'state', 'company_state']),
@@ -90,7 +96,7 @@ function normalizeEvent(raw) {
     },
     profile: flatten(top.resolution || top.person || {}),
     page: {
-      url: firstVal(ev.url || ev.page_url || top.url || top.page_url),
+      url: firstVal(ev.url || ev.page_url || ev.event_url || ev.full_url || ev.landing_page || top.url || top.page_url),
       title: firstVal(ev.title || ev.page_title),
       referrer: firstVal(ev.referrer || top.referrer),
       eventType: firstVal(top.event_type || ev.event_type || 'page_view'),
@@ -139,6 +145,17 @@ async function ingest(payload) {
   return { stored, skipped };
 }
 
+/**
+ * Import rows from an AudienceLab CSV export into one pixel. Each row is a flat
+ * object keyed by the CSV header. All columns are kept in `profile`.
+ */
+async function ingestRows(pixelId, rows) {
+  const events = rows
+    .filter(r => r && typeof r === 'object')
+    .map(r => ({ ...r, pixel_id: pixelId, resolution: r, event_data: r }));
+  return ingest(events);
+}
+
 /** Pixel IDs that have sent data, for the admin assign dropdown. */
 async function knownPixels() {
   return PixelVisitor.aggregate([
@@ -147,4 +164,4 @@ async function knownPixels() {
   ]);
 }
 
-module.exports = { ingest, normalizeEvent, knownPixels };
+module.exports = { ingest, ingestRows, normalizeEvent, knownPixels };

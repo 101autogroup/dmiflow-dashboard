@@ -3,6 +3,7 @@ const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const User = require('../models/User');
 const PixelVisitor = require('../models/PixelVisitor');
+const audiencelab = require('../services/audiencelab');
 
 const PAGE_SIZE = 50;
 
@@ -28,11 +29,16 @@ function escapeRegex(s) {
  */
 async function resolvePixel(req) {
   const user = await User.findById(req.session.user.id);
-  if (!user) return { user: null, pixelId: null };
-  if (user.role === 'admin' && req.query.pixel) {
-    return { user, pixelId: String(req.query.pixel) };
+  if (!user) return { user: null, pixelId: null, accounts: [] };
+  if (user.role !== 'admin') {
+    return { user, pixelId: user.assignedPixelId || null, label: user.pixelLabel || '', accounts: [] };
   }
-  return { user, pixelId: user.assignedPixelId || null };
+  // Admins can view any account's pixel; default to their own, else the first one assigned
+  const accounts = await User.find({ assignedPixelId: { $nin: [null, ''] } })
+    .select('name pixelLabel assignedPixelId').sort({ name: 1 }).lean();
+  const wanted = req.query.pixel ? String(req.query.pixel) : (user.assignedPixelId || (accounts[0] && accounts[0].assignedPixelId) || null);
+  const acct = accounts.find(a => a.assignedPixelId === wanted);
+  return { user, pixelId: wanted, label: acct ? (acct.pixelLabel || acct.name) : (user.pixelLabel || ''), accounts };
 }
 
 function buildQuery(pixelId, q) {
@@ -62,7 +68,7 @@ function fmtDate(d) {
 // List
 router.get('/', requireAuth, async (req, res) => {
   try {
-    const { user, pixelId } = await resolvePixel(req);
+    const { user, pixelId, label, accounts } = await resolvePixel(req);
     const filters = {
       search: req.query.search || '',
       startDate: req.query.startDate || '',
@@ -72,7 +78,8 @@ router.get('/', requireAuth, async (req, res) => {
     if (!pixelId) {
       return res.render('visitors/index', {
         title: 'Website Visitors', esc, noPixel: true, visitors: [], stats: null,
-        filters, pagination: { page: 1, totalPages: 1, total: 0 }, qs: '', pixelLabel: ''
+        filters, pagination: { page: 1, totalPages: 1, total: 0 }, qs: '', pixelLabel: '',
+        isAdmin: user && user.role === 'admin', accounts: [], pixelId: ''
       });
     }
 
@@ -106,7 +113,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     const qsParams = new URLSearchParams();
     for (const k of ['search', 'startDate', 'endDate']) if (filters[k]) qsParams.set(k, filters[k]);
-    if (user.role === 'admin' && req.query.pixel) qsParams.set('pixel', pixelId);
+    if (user.role === 'admin') qsParams.set('pixel', pixelId);
 
     res.render('visitors/index', {
       title: 'Website Visitors',
@@ -116,8 +123,11 @@ router.get('/', requireAuth, async (req, res) => {
       stats: { allTime, last7, lastReceived: newest ? fmtDate(newest.lastSeen) : 'No data yet' },
       filters,
       qs: qsParams.toString(),
-      pixelLabel: user.pixelLabel || '',
+      pixelLabel: label || '',
+      accounts: accounts.map(a => ({ pixelId: a.assignedPixelId, name: a.name, label: a.pixelLabel || '' })),
       refreshed: req.query.refreshed === '1',
+      isAdmin: user.role === 'admin',
+      pixelId,
       pagination: { page, totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)), total }
     });
   } catch (err) {
@@ -166,6 +176,25 @@ router.get('/export.csv', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Visitors export error:', err);
     res.redirect('/visitors');
+  }
+});
+
+// CSV import (admin only). The browser parses the AudienceLab CSV export and
+// posts rows here in chunks, so large files stay under Vercel's 4.5MB body limit.
+router.post('/import', requireAuth, express.json({ limit: '4mb' }), async (req, res) => {
+  try {
+    const user = await User.findById(req.session.user.id);
+    if (!user || user.role !== 'admin') return res.status(403).json({ ok: false, error: 'Admins only' });
+
+    const pixelId = String(req.body.pixelId || '').trim();
+    const rows = Array.isArray(req.body.rows) ? req.body.rows.slice(0, 1000) : [];
+    if (!pixelId) return res.status(400).json({ ok: false, error: 'Missing pixel' });
+
+    const result = await audiencelab.ingestRows(pixelId, rows);
+    return res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('Visitors import error:', err);
+    return res.status(500).json({ ok: false, error: 'Import failed' });
   }
 });
 

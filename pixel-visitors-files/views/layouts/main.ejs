@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | DMI FLOW Dashboard</title>
+  <link rel="stylesheet" href="/css/output.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    
+    /* Sidebar transition */
+    .sidebar-expanded { width: 260px; }
+    .sidebar-collapsed { width: 72px; }
+    .sidebar-collapsed .nav-text,
+    .sidebar-collapsed .section-label,
+    .sidebar-collapsed .user-info,
+    .sidebar-collapsed .logo-text { display: none; }
+    .sidebar-collapsed .nav-item { justify-content: center; padding-left: 0; padding-right: 0; }
+    .sidebar-collapsed .nav-icon-box { margin-right: 0; }
+    .sidebar-collapsed .user-section { justify-content: center; padding: 1rem; }
+    .sidebar-collapsed .user-avatar { margin: 0; }
+    .sidebar-collapsed .toggle-btn { transform: rotate(180deg); }
+  </style>
+</head>
+<body class="min-h-screen bg-surface-950">
+  <% if (user) { %>
+  <div class="flex h-screen overflow-hidden">
+    <!-- Mobile Menu Overlay -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden hidden" onclick="toggleMobileSidebar()"></div>
+    
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed lg:relative top-0 left-0 z-50 h-screen bg-surface-900 border-r border-surface-800/50 flex flex-col transition-all duration-300 ease-in-out transform -translate-x-full lg:translate-x-0 sidebar-expanded">
+      <!-- Logo -->
+      <div class="flex items-center justify-between p-4 border-b border-surface-800/50 h-16">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <div class="logo-text min-w-0">
+            <h1 class="text-base font-bold text-white truncate">DMI FLOW Dashboard</h1>
+          </div>
+        </div>
+        <!-- Toggle Button (Desktop) -->
+        <button onclick="toggleSidebar()" class="hidden lg:flex toggle-btn w-7 h-7 rounded-lg bg-surface-800 hover:bg-surface-700 items-center justify-center text-surface-400 hover:text-white transition-all flex-shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <!-- Close Button (Mobile) -->
+        <button onclick="toggleMobileSidebar()" class="lg:hidden w-7 h-7 rounded-lg bg-surface-800 hover:bg-surface-700 flex items-center justify-center text-surface-400 hover:text-white">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+        <p class="section-label px-3 py-2 text-[10px] font-semibold text-surface-500 uppercase tracking-widest">Menu</p>
+        
+        <a href="/dashboard" class="nav-item group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all <%= currentPath === '/dashboard' ? 'bg-brand-500/10 text-brand-400' : 'text-surface-400 hover:text-white hover:bg-surface-800/50' %>">
+          <div class="nav-icon-box w-8 h-8 rounded-lg <%= currentPath === '/dashboard' ? 'bg-brand-500/20' : 'bg-surface-800 group-hover:bg-surface-700' %> flex items-center justify-center flex-shrink-0 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+            </svg>
+          </div>
+          <span class="nav-text">Dashboard</span>
+        </a>
+        
+        <a href="/calls" class="nav-item group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all <%= currentPath.startsWith('/calls') ? 'bg-brand-500/10 text-brand-400' : 'text-surface-400 hover:text-white hover:bg-surface-800/50' %>">
+          <div class="nav-icon-box w-8 h-8 rounded-lg <%= currentPath.startsWith('/calls') ? 'bg-brand-500/20' : 'bg-surface-800 group-hover:bg-surface-700' %> flex items-center justify-center flex-shrink-0 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+            </svg>
+          </div>
+          <span class="nav-text">Calls</span>
+        </a>
+        
+        <a href="/agents" class="nav-item group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all <%= currentPath.startsWith('/agents') ? 'bg-brand-500/10 text-brand-400' : 'text-surface-400 hover:text-white hover:bg-surface-800/50' %>">
+          <div class="nav-icon-box w-8 h-8 rounded-lg <%= currentPath.startsWith('/agents') ? 'bg-brand-500/20' : 'bg-surface-800 group-hover:bg-surface-700' %> flex items-center justify-center flex-shrink-0 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+          </div>
+          <span class="nav-text">Agents</span>
+        </a>
+        
+        <a href="/visitors" class="nav-item group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all <%= currentPath.startsWith('/visitors') ? 'bg-brand-500/10 text-brand-400' : 'text-surface-400 hover:text-white hover:bg-surface-800/50' %>">
+          <div class="nav-icon-box w-8 h-8 rounded-lg <%= currentPath.startsWith('/visitors') ? 'bg-brand-500/20' : 'bg-surface-800 group-hover:bg-surface-700' %> flex items-center justify-center flex-shrink-0 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+          </div>
+          <span class="nav-text">Website Visitors</span>
+        </a>
+        
+        <% if (user.role === 'admin') { %>
+        <div class="pt-3 mt-3 border-t border-surface-800/50">
+          <p class="section-label px-3 py-2 text-[10px] font-semibold text-surface-500 uppercase tracking-widest">Admin</p>
+          
+          <a href="/admin/users" class="nav-item group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all <%= currentPath.startsWith('/admin/users') ? 'bg-brand-500/10 text-brand-400' : 'text-surface-400 hover:text-white hover:bg-surface-800/50' %>">
+            <div class="nav-icon-box w-8 h-8 rounded-lg <%= currentPath.startsWith('/admin/users') ? 'bg-brand-500/20' : 'bg-surface-800 group-hover:bg-surface-700' %> flex items-center justify-center flex-shrink-0 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+              </svg>
+            </div>
+            <span class="nav-text">Users</span>
+          </a>
+
+          <a href="/admin/agent-change-requests" class="nav-item group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all <%= currentPath.startsWith('/admin/agent-change-requests') ? 'bg-brand-500/10 text-brand-400' : 'text-surface-400 hover:text-white hover:bg-surface-800/50' %>">
+            <div class="nav-icon-box w-8 h-8 rounded-lg <%= currentPath.startsWith('/admin/agent-change-requests') ? 'bg-brand-500/20' : 'bg-surface-800 group-hover:bg-surface-700' %> flex items-center justify-center flex-shrink-0 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V9l-7-7z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v6h6"/>
+              </svg>
+            </div>
+            <span class="nav-text">Agent Requests</span>
+          </a>
+        </div>
+        <% } %>
+      </nav>
+
+      <!-- User section -->
+      <div class="user-section flex items-center gap-3 p-3 border-t border-surface-800/50">
+        <div class="user-avatar w-9 h-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+          <%= user.name.charAt(0).toUpperCase() %>
+        </div>
+        <div class="user-info flex-1 min-w-0">
+          <p class="text-sm font-medium text-white truncate"><%= user.name %></p>
+          <p class="text-xs text-surface-500 truncate"><%= user.email %></p>
+        </div>
+        <a href="/logout" class="nav-text p-2 rounded-lg text-surface-400 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Logout">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <!-- Mobile Header -->
+      <header class="lg:hidden flex items-center justify-between bg-surface-900 border-b border-surface-800/50 px-3 py-2 h-14 flex-shrink-0">
+        <button onclick="toggleMobileSidebar()" class="p-2 -ml-1 rounded-lg text-surface-400 hover:text-white hover:bg-surface-800 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <span class="font-semibold text-white text-sm">DMI FLOW Dashboard</span>
+        </div>
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-semibold">
+          <%= user.name.charAt(0).toUpperCase() %>
+        </div>
+      </header>
+      
+      <!-- Scrollable Content -->
+      <div class="flex-1 overflow-y-auto">
+        <div class="p-3 sm:p-4 lg:p-6">
+          <%- body %>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <script>
+    function toggleSidebar() {
+      var sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('sidebar-collapsed');
+      sidebar.classList.toggle('sidebar-expanded');
+    }
+    
+    function toggleMobileSidebar() {
+      var sidebar = document.getElementById('sidebar');
+      var overlay = document.getElementById('sidebarOverlay');
+      var isOpen = !sidebar.classList.contains('-translate-x-full');
+      
+      if (isOpen) {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+        document.body.style.overflow = '';
+      } else {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+    
+    window.addEventListener('resize', function() {
+      if (window.innerWidth >= 1024) {
+        var overlay = document.getElementById('sidebarOverlay');
+        overlay.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+    });
+  </script>
+  <% } else { %>
+    <%- body %>
+  <% } %>
+</body>
+</html>

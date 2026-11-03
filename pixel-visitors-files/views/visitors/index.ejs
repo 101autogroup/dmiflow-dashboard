@@ -1,0 +1,146 @@
+<%- include('../layouts/main', { body: `
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-surface-50">Website Visitors</h1>
+      <p class="text-surface-400 mt-1">People identified on your website${pixelLabel ? ' &middot; ' + esc(pixelLabel) : ''}</p>
+    </div>
+    ${!noPixel ? `
+    <div class="flex flex-wrap items-center gap-2">
+      <form action="/visitors/refresh" method="POST">
+        <input type="hidden" name="qs" value="${esc(qs)}">
+        <button type="submit" class="btn btn-secondary">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Refresh
+        </button>
+      </form>
+      <a href="/visitors/export.csv${qs ? '?' + esc(qs) : ''}" class="btn btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        Export CSV
+      </a>
+    </div>
+    ` : ''}
+  </div>
+
+  ${noPixel ? `
+  <div class="card text-center py-12">
+    <svg class="w-12 h-12 mx-auto mb-4 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+    </svg>
+    <p class="text-surface-200 font-medium">Website visitor tracking isn't set up yet</p>
+    <p class="text-surface-400 text-sm mt-1">Contact DMI Flow to add the visitor pixel to your website.</p>
+  </div>
+  ` : `
+
+  ${refreshed ? `
+  <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+    <p class="text-sm text-emerald-400">Refreshed. Last visitor received: ${esc(stats.lastReceived)}</p>
+  </div>` : ''}
+
+  <!-- Stats -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="card">
+      <p class="text-sm text-surface-400">Total identified</p>
+      <p class="text-2xl font-bold text-surface-50 mt-1">${stats.allTime.toLocaleString()}</p>
+    </div>
+    <div class="card">
+      <p class="text-sm text-surface-400">Last 7 days</p>
+      <p class="text-2xl font-bold text-surface-50 mt-1">${stats.last7.toLocaleString()}</p>
+    </div>
+    <div class="card">
+      <p class="text-sm text-surface-400">Last visitor</p>
+      <p class="text-lg font-semibold text-surface-50 mt-1">${esc(stats.lastReceived)}</p>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card">
+    <form action="/visitors" method="GET" class="flex flex-wrap gap-4">
+      <div class="flex-1 min-w-[200px]">
+        <label class="label">Search</label>
+        <input type="text" name="search" value="${esc(filters.search)}" placeholder="Name, email, phone, company, city" class="input">
+      </div>
+      <div class="flex-1 min-w-[150px]">
+        <label class="label">From</label>
+        <input type="date" name="startDate" value="${esc(filters.startDate)}" class="input">
+      </div>
+      <div class="flex-1 min-w-[150px]">
+        <label class="label">To</label>
+        <input type="date" name="endDate" value="${esc(filters.endDate)}" class="input">
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a href="/visitors" class="btn btn-secondary">Clear</a>
+      </div>
+    </form>
+  </div>
+
+  <p class="text-sm text-surface-400">Showing ${visitors.length} of ${pagination.total.toLocaleString()} visitors</p>
+
+  <!-- Table -->
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Location</th>
+          <th>Company</th>
+          <th>Visits</th>
+          <th>Last Seen</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${visitors.length === 0 ? `
+        <tr><td colspan="8" class="text-center py-12 text-surface-400">No visitors found</td></tr>
+        ` : visitors.map(v => `
+        <tr>
+          <td>
+            <span class="font-medium text-surface-100">${esc(v.name)}</span>
+            ${v.jobTitle ? `<div class="text-xs text-surface-500">${esc(v.jobTitle)}</div>` : ''}
+          </td>
+          <td>${v.email ? `<a href="mailto:${esc(v.email)}" class="text-brand-400 hover:underline">${esc(v.email)}</a>` : '<span class="text-surface-600">&mdash;</span>'}</td>
+          <td class="whitespace-nowrap">${v.phone ? `<a href="tel:${esc(v.phone)}" class="text-brand-400 hover:underline">${esc(v.phone)}</a>` : '<span class="text-surface-600">&mdash;</span>'}</td>
+          <td class="text-surface-300">${esc(v.location)}</td>
+          <td class="text-surface-300">${esc(v.company)}</td>
+          <td><span class="badge badge-info">${v.visits}</span></td>
+          <td class="whitespace-nowrap text-surface-300">${esc(v.lastSeen)}</td>
+          <td>
+            ${v.pages.length ? `
+            <details>
+              <summary class="cursor-pointer text-sm text-brand-400">Pages</summary>
+              <ul class="mt-2 space-y-1 text-xs text-surface-400 max-w-xs">
+                ${v.pages.map(p => `<li class="truncate" title="${esc(p.url)}">${esc(p.at)} &middot; ${esc(p.url)}</li>`).join('')}
+              </ul>
+            </details>` : ''}
+          </td>
+        </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  ${pagination.totalPages > 1 ? `
+  <div class="flex items-center justify-center gap-2">
+    ${pagination.page > 1 ? `<a href="/visitors?${esc(qs)}${qs ? '&' : ''}page=${pagination.page - 1}" class="btn btn-secondary text-sm">Previous</a>` : ''}
+    <span class="text-sm text-surface-400">Page ${pagination.page} of ${pagination.totalPages}</span>
+    ${pagination.page < pagination.totalPages ? `<a href="/visitors?${esc(qs)}${qs ? '&' : ''}page=${pagination.page + 1}" class="btn btn-secondary text-sm">Next</a>` : ''}
+  </div>
+  ` : ''}
+
+  <p class="text-xs text-surface-500">
+    Visitor data is provided for your own business follow-up only. Honor opt-out requests and follow applicable
+    privacy, email (CAN-SPAM) and calling/texting (TCPA) rules when contacting these people.
+  </p>
+  `}
+</div>
+` }) %>

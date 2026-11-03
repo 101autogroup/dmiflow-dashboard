@@ -12,6 +12,8 @@ const callsRoutes = require('./routes/calls');
 const agentsRoutes = require('./routes/agents');
 const agentChangeRequestsRoutes = require('./routes/agentChangeRequests');
 const adminRoutes = require('./routes/admin');
+const visitorsRoutes = require('./routes/visitors');
+const pixelWebhookRoutes = require('./routes/pixelWebhook');
 
 const app = express();
 
@@ -37,7 +39,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // AudienceLab webhooks can batch many events
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -67,6 +69,9 @@ app.use(async (req, res, next) => {
     .send('<!doctype html><title>Temporarily unavailable</title><h1>Temporarily unavailable</h1><p>We cannot reach the database right now. Please retry in a few seconds.</p>');
   }
 });
+
+// AudienceLab webhook - machine-to-machine, no session needed
+app.use('/webhooks/audiencelab', pixelWebhookRoutes);
 
 // Session configuration
 const sessionStore = MongoStore.create({
@@ -105,6 +110,7 @@ app.use('/calls', callsRoutes);
 app.use('/agents', agentsRoutes);
 app.use('/agent-change-requests', agentChangeRequestsRoutes);
 app.use('/admin', adminRoutes);
+app.use('/visitors', visitorsRoutes);
 
 // Home redirect
 app.get('/', (req, res) => {

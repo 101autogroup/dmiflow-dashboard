@@ -65,6 +65,27 @@ function fmtDate(d) {
   }) : '';
 }
 
+// Pages a visitor viewed, newest first. Older imports may only have the URL
+// inside the raw profile columns, so fall back to scanning those.
+function pagesOf(v) {
+  const pages = (v.pages || []).filter(p => p && p.url)
+    .slice().sort((a, b) => new Date(b.at) - new Date(a.at));
+  if (pages.length) return pages;
+  const url = audiencelab.findPageUrl(v.profile || {});
+  return url ? [{ url, at: v.lastSeen }] : [];
+}
+
+function shortUrl(u) {
+  if (!u) return '';
+  try {
+    const x = new URL(u);
+    const path = (x.pathname + x.search) || '/';
+    return path.length > 40 ? path.slice(0, 40) + '...' : path;
+  } catch (e) {
+    return u.length > 40 ? u.slice(0, 40) + '...' : u;
+  }
+}
+
 // List
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -97,7 +118,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     const byTime = (pages) => (pages || []).slice().sort((a, b) => new Date(b.at) - new Date(a.at));
 
-    const visitors = rows.map(v => ({
+    const visitors = rows.map(v => ({ v, pages: pagesOf(v) })).map(({ v, pages }) => ({
       id: String(v._id),
       name: [v.firstName, v.lastName].filter(Boolean).join(' ') || 'Unknown',
       email: v.email || '',
@@ -106,9 +127,10 @@ router.get('/', requireAuth, async (req, res) => {
       company: v.company || '',
       jobTitle: v.jobTitle || '',
       visits: v.visitCount || 0,
-      lastPage: (byTime(v.pages)[0] || {}).url || '',
+      lastPage: (pages[0] || {}).url || '',
+      lastPageShort: shortUrl((pages[0] || {}).url || ''),
       lastSeen: fmtDate(v.lastSeen),
-      pages: byTime(v.pages).slice(0, 10).map(p => ({ url: p.url || '', at: fmtDate(p.at) }))
+      pageCount: pages.length
     }));
 
     const qsParams = new URLSearchParams();
@@ -156,7 +178,7 @@ router.get('/export.csv', requireAuth, async (req, res) => {
 
     const lines = [[...base, ...profileKeys].map(cell).join(',')];
     for (const r of rows) {
-      const pages = (r.pages || []).slice().sort((a, b) => new Date(a.at) - new Date(b.at));
+      const pages = pagesOf(r).slice().reverse(); // oldest first
       lines.push([
         r.firstName, r.lastName, r.email, r.phone, r.address, r.city, r.state, r.zip,
         r.company, r.jobTitle, r.linkedin, r.visitCount,
@@ -195,6 +217,43 @@ router.post('/import', requireAuth, express.json({ limit: '4mb' }), async (req, 
   } catch (err) {
     console.error('Visitors import error:', err);
     return res.status(500).json({ ok: false, error: 'Import failed' });
+  }
+});
+
+// One visitor: every page viewed + every field AudienceLab sent
+router.get('/person/:id', requireAuth, async (req, res) => {
+  try {
+    const { user, pixelId } = await resolvePixel(req);
+    if (!pixelId || !/^[a-f0-9]{24}$/i.test(req.params.id)) return res.redirect('/visitors');
+
+    // Scoped to the pixel this user may see, so clients can't open other accounts' people
+    const v = await PixelVisitor.findOne({ _id: req.params.id, pixelId }).lean();
+    if (!v) return res.status(404).render('error', { title: 'Not found', message: 'Visitor not found.' });
+
+    const pages = pagesOf(v).map(p => ({ url: p.url, title: p.title || '', at: fmtDate(p.at) }));
+    const fields = Object.entries(v.profile || {})
+      .filter(([, val]) => val !== '' && val != null)
+      .map(([k, val]) => ({ key: k.replace(/_/g, ' ').toLowerCase(), val: String(val) }))
+      .sort((a, b) => a.key.localeCompare(b.key));
+
+    res.render('visitors/detail', {
+      title: 'Visitor',
+      esc,
+      back: '/visitors' + (user.role === 'admin' ? '?pixel=' + encodeURIComponent(pixelId) : ''),
+      pixelQs: user.role === 'admin' ? '?pixel=' + encodeURIComponent(pixelId) : '',
+      person: {
+        name: [v.firstName, v.lastName].filter(Boolean).join(' ') || 'Unknown',
+        email: v.email || '', phone: v.phone || '',
+        address: [v.address, v.city, v.state, v.zip].filter(Boolean).join(', '),
+        company: v.company || '', jobTitle: v.jobTitle || '', linkedin: v.linkedin || '',
+        visits: v.visitCount || 0, firstSeen: fmtDate(v.firstSeen), lastSeen: fmtDate(v.lastSeen)
+      },
+      pages,
+      fields
+    });
+  } catch (err) {
+    console.error('Visitor detail error:', err);
+    res.redirect('/visitors');
   }
 });
 

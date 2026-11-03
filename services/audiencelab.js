@@ -57,6 +57,23 @@ function flatten(obj, prefix = '', out = {}) {
   return out;
 }
 
+// Find the visited-page URL in a row whose column names we don't know in advance.
+const PAGE_KEYS = ['url', 'page_url', 'event_url', 'full_url', 'landing_page', 'landing_page_url', 'page', 'current_url', 'last_page', 'last_url', 'visited_url', 'web_page'];
+const NOT_PAGE = /linkedin|facebook|twitter|instagram|youtube|image|logo|photo|avatar|company_url|company_domain|website|domain|referr/i;
+function findPageUrl(obj) {
+  const lk = lowerKeys(obj);
+  for (const k of PAGE_KEYS) {
+    const v = firstVal(lk[k]);
+    if (/^https?:\/\//i.test(v)) return v;
+  }
+  for (const [k, raw] of Object.entries(lk)) {
+    if (NOT_PAGE.test(k) || !/url|page/.test(k)) continue;
+    const v = firstVal(raw);
+    if (/^https?:\/\//i.test(v)) return v;
+  }
+  return '';
+}
+
 function normalizeEvent(raw) {
   const top = lowerKeys(raw);
   const res = lowerKeys(top.resolution || top.person || {});
@@ -96,7 +113,7 @@ function normalizeEvent(raw) {
     },
     profile: flatten(top.resolution || top.person || {}),
     page: {
-      url: firstVal(ev.url || ev.page_url || ev.event_url || ev.full_url || ev.landing_page || top.url || top.page_url),
+      url: findPageUrl(top.event_data || {}) || findPageUrl(raw),
       title: firstVal(ev.title || ev.page_title),
       referrer: firstVal(ev.referrer || top.referrer),
       eventType: firstVal(top.event_type || ev.event_type || 'page_view'),
@@ -164,4 +181,4 @@ async function knownPixels() {
   ]);
 }
 
-module.exports = { ingest, ingestRows, normalizeEvent, knownPixels };
+module.exports = { ingest, ingestRows, normalizeEvent, knownPixels, findPageUrl };

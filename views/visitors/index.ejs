@@ -181,12 +181,13 @@
           <th>Company</th>
           <th>Visits</th>
           <th>Last Seen</th>
+          <th>Last Page Visited</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
         ${visitors.length === 0 ? `
-        <tr><td colspan="8" class="text-center py-12 text-surface-400">No visitors found</td></tr>
+        <tr><td colspan="9" class="text-center py-12 text-surface-400">No visitors found</td></tr>
         ` : visitors.map(v => `
         <tr>
           <td>
@@ -199,15 +200,13 @@
           <td class="text-surface-300">${esc(v.company)}</td>
           <td><span class="badge badge-info">${v.visits}</span></td>
           <td class="whitespace-nowrap text-surface-300">${esc(v.lastSeen)}</td>
-          <td>
-            ${v.pages.length ? `
-            <details>
-              <summary class="cursor-pointer text-sm text-brand-400">Pages</summary>
-              <ul class="mt-2 space-y-1 text-xs text-surface-400 max-w-xs">
-                ${v.pages.map(p => `<li class="truncate" title="${esc(p.url)}">${esc(p.at)} &middot; ${esc(p.url)}</li>`).join('')}
-              </ul>
-            </details>` : ''}
+          <td class="max-w-[220px]">
+            ${v.lastPage ? `
+            <a href="${esc(v.lastPage)}" target="_blank" rel="noopener noreferrer" class="text-brand-400 hover:underline text-sm block truncate" title="${esc(v.lastPage)}">${esc(v.lastPageShort)}</a>
+            ${v.pageCount > 1 ? `<span class="text-xs text-surface-500">+${v.pageCount - 1} more</span>` : ''}
+            ` : '<span class="text-surface-600">&mdash;</span>'}
           </td>
+          <td><a href="/visitors/person/${esc(v.id)}${qs.indexOf('pixel=') >= 0 ? '?pixel=' + encodeURIComponent(pixelId) : ''}" class="btn btn-secondary text-sm py-1.5 px-3">View</a></td>
         </tr>
         `).join('')}
       </tbody>

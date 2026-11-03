@@ -26,6 +26,17 @@ const userSchema = new mongoose.Schema({
   assignedAgentIds: [{
     type: String
   }],
+  // AudienceLab pixel whose identified visitors this account can see (one per account)
+  assignedPixelId: {
+    type: String,
+    default: null,
+    trim: true
+  },
+  pixelLabel: {
+    type: String,
+    default: '',
+    trim: true
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -61,6 +72,7 @@ userSchema.methods.toSafeObject = function() {
     name: this.name,
     role: this.role,
     assignedAgentIds: this.assignedAgentIds,
+    assignedPixelId: this.assignedPixelId,
     createdAt: this.createdAt
   };
 };

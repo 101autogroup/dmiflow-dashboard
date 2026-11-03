@@ -4,6 +4,7 @@ const { requireAdmin } = require('../middleware/admin');
 const retell = require('../services/retell');
 const User = require('../models/User');
 const AgentChangeRequest = require('../models/AgentChangeRequest');
+const audiencelab = require('../services/audiencelab');
 
 function escapeHtmlText(s) {
   if (s == null || s === '') return '';
@@ -176,10 +177,29 @@ router.get('/users/:userId/assign', requireAdmin, async (req, res) => {
       isAssigned: assignedIds.includes(agent.agent_id)
     }));
     
+    let pixels = [];
+    try {
+      pixels = await audiencelab.knownPixels();
+    } catch (e) {
+      console.error('Failed to load known pixels:', e);
+    }
+    // Which account already owns each pixel, so the admin can see conflicts
+    const owners = await User.find({ assignedPixelId: { $ne: null } }).select('name assignedPixelId').lean();
+    const ownerMap = {};
+    owners.forEach(o => { ownerMap[o.assignedPixelId] = o.name; });
+
     res.render('admin/assign', {
       title: 'Assign Agents',
       targetUser: targetUser.toObject(),
-      agents: agentsWithStatus
+      agents: agentsWithStatus,
+      pixels: pixels.map(p => ({
+        id: escapeAttr(p._id),
+        visitors: p.visitors,
+        owner: ownerMap[p._id] && ownerMap[p._id] !== targetUser.name ? escapeAttr(ownerMap[p._id]) : ''
+      })),
+      currentPixelId: escapeAttr(targetUser.assignedPixelId || ''),
+      currentPixelLabel: escapeAttr(targetUser.pixelLabel || ''),
+      webhookConfigured: !!process.env.AUDIENCELAB_WEBHOOK_SECRET
     });
   } catch (error) {
     console.error('Assign agents error:', error);
@@ -209,6 +229,12 @@ router.post('/users/:userId/assign', requireAdmin, async (req, res) => {
     
     // Update user
     targetUser.assignedAgentIds = agentIds;
+
+    // Pixel: a manually typed ID wins over the dropdown
+    const pixelId = String(req.body.pixelIdManual || req.body.pixelId || '').trim();
+    targetUser.assignedPixelId = pixelId || null;
+    targetUser.pixelLabel = String(req.body.pixelLabel || '').trim().slice(0, 100);
+
     await targetUser.save();
     
     res.redirect('/admin/users');

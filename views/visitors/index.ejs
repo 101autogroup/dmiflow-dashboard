@@ -1,71 +1,65 @@
 <%- include('../layouts/main', { body: `
-<div class="space-y-6">
+<div class="space-y-5 lg:space-y-6 pb-8">
+
   <!-- Header -->
-  <div class="flex flex-wrap items-start justify-between gap-4">
+  <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-bold text-surface-50">Website Visitors</h1>
-      <p class="text-surface-400 mt-1">People identified on your website${pixelLabel ? ' &middot; ' + esc(pixelLabel) : ''}</p>
+      <p class="eyebrow">Website Visitors</p>
+      <h1 class="page-title mt-2">Who's on your website</h1>
+      <p class="text-surface-400 text-sm mt-1">
+        ${!noPixel ? '<span class="livedot mr-2 align-middle"></span>' : ''}<span>People identified by your visitor pixel</span>${pixelLabel ? '<span class="text-surface-200"> &middot; ' + esc(pixelLabel) + '</span>' : ''}
+      </p>
     </div>
     ${!noPixel ? `
     <div class="flex flex-wrap items-center gap-2">
       <form action="/visitors/refresh" method="POST">
         <input type="hidden" name="qs" value="${esc(qs)}">
         <button type="submit" class="btn btn-secondary">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-          </svg>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
           Refresh
         </button>
       </form>
       <a href="/visitors/export.csv${qs ? '?' + esc(qs) : ''}" class="btn btn-primary">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-        </svg>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         Export CSV
       </a>
-    </div>
-    ` : ''}
+    </div>` : ''}
   </div>
 
   ${noPixel ? `
-  <div class="card text-center py-12">
-    <svg class="w-12 h-12 mx-auto mb-4 text-surface-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-    </svg>
-    <p class="text-surface-200 font-medium">Website visitor tracking isn't set up yet</p>
-    <p class="text-surface-400 text-sm mt-1">Contact DMI Flow to add the visitor pixel to your website.</p>
+  <div class="card text-center py-14">
+    <div class="inline-flex w-14 h-14 rounded-2xl bg-brand-500/10 border border-brand-500/20 items-center justify-center mb-4">
+      <svg class="w-7 h-7 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+    </div>
+    <h2 class="text-lg font-semibold text-surface-100">Visitor tracking isn't set up yet</h2>
+    <p class="text-surface-400 text-sm mt-1">Contact DMI Flow to add the visitor pixel to your website and start seeing who's shopping.</p>
   </div>
   ` : `
 
-  ${refreshed ? `
-  <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
-    <p class="text-sm text-emerald-400">Refreshed. Last visitor received: ${esc(stats.lastReceived)}</p>
-  </div>` : ''}
-
-  ${isAdmin && accounts.length ? `
-  <form method="GET" action="/visitors" class="flex flex-wrap items-center gap-3">
-    <label class="text-sm text-surface-400">Viewing account:</label>
-    <select name="pixel" class="input max-w-xs" onchange="this.form.submit()">
-      ${accounts.map(a => `<option value="${esc(a.pixelId)}" ${a.pixelId === pixelId ? 'selected' : ''}>${esc(a.name)}${a.label ? ' (' + esc(a.label) + ')' : ''}</option>`).join('')}
-    </select>
-  </form>
-  ` : ''}
-
   ${isAdmin ? `
-  <!-- Admin: import AudienceLab CSV export (history the webhook can't send) -->
-  <div class="card">
-    <div class="flex flex-wrap items-center justify-between gap-4">
-      <div>
-        <h3 class="text-base font-semibold text-surface-100">Import from AudienceLab (admin only)</h3>
-        <p class="text-sm text-surface-400 mt-1">Upload the pixel's CSV export to load past visitors into pixel <span class="font-mono text-surface-300">${esc(pixelId)}</span>.</p>
+  <!-- Admin tools -->
+  <div class="flex flex-wrap items-center gap-3">
+    ${accounts.length ? `
+    <form method="GET" action="/visitors" class="flex items-center gap-2">
+      <span class="font-mono text-[10.5px] font-bold uppercase tracking-[.16em] text-surface-500">Account</span>
+      <select name="pixel" class="input py-2 max-w-xs text-sm" onchange="this.form.submit()">
+        ${accounts.map(a => `<option value="${esc(a.pixelId)}" ${a.pixelId === pixelId ? 'selected' : ''}>${esc(a.name)}${a.label ? ' (' + esc(a.label) + ')' : ''}</option>`).join('')}
+      </select>
+    </form>` : ''}
+    <details class="group">
+      <summary class="btn btn-secondary text-sm py-2 cursor-pointer list-none">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Import CSV (admin)
+      </summary>
+      <div class="card mt-3">
+        <p class="text-sm text-surface-400">Upload the AudienceLab CSV export to load past visitors into pixel <span class="font-mono text-surface-200">${esc(pixelId)}</span>. Import each file once.</p>
+        <div class="flex flex-wrap items-center gap-3 mt-3">
+          <input type="file" id="alCsv" accept=".csv,text/csv" class="text-sm text-surface-300">
+          <button type="button" id="alImportBtn" class="btn btn-primary text-sm py-2">Import</button>
+        </div>
+        <p id="alStatus" class="text-sm text-surface-400 mt-3"></p>
       </div>
-      <div class="flex items-center gap-2">
-        <input type="file" id="alCsv" accept=".csv,text/csv" class="text-sm text-surface-300">
-        <button type="button" id="alImportBtn" class="btn btn-primary">Import</button>
-      </div>
-    </div>
-    <p id="alStatus" class="text-sm text-surface-400 mt-3"></p>
+    </details>
   </div>
   <script>
   (function () {
@@ -129,56 +123,151 @@
   </script>
   ` : ''}
 
-  <!-- Stats -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div class="card">
-      <p class="text-sm text-surface-400">Total identified</p>
-      <p class="text-2xl font-bold text-surface-50 mt-1">${stats.allTime.toLocaleString()}</p>
+  ${refreshed ? `
+  <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2">
+    <span class="livedot"></span>
+    <p class="text-sm text-emerald-300">Up to date. Last visitor received: ${esc(stats.lastReceived)}</p>
+  </div>` : ''}
+
+  <!-- KPIs -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div class="kpi">
+      <p class="stat-label">Identified</p>
+      <p class="kpi-value">${stats.allTime.toLocaleString()}</p>
+      <p class="text-xs text-surface-500 mt-1">${stats.withPhone.toLocaleString()} with a phone number</p>
     </div>
-    <div class="card">
-      <p class="text-sm text-surface-400">Last 7 days</p>
-      <p class="text-2xl font-bold text-surface-50 mt-1">${stats.last7.toLocaleString()}</p>
+    <div class="kpi kpi-green">
+      <p class="stat-label">Last 7 days</p>
+      <p class="kpi-value">${stats.last7.toLocaleString()}</p>
+      <p class="text-xs text-surface-500 mt-1">active on your site</p>
     </div>
-    <div class="card">
-      <p class="text-sm text-surface-400">Last visitor</p>
-      <p class="text-lg font-semibold text-surface-50 mt-1">${esc(stats.lastReceived)}</p>
+    <a href="/visitors?tier=hot${pixelQs ? '&' + esc(pixelQs) : ''}" class="kpi block hover:border-brand-500/40 transition-colors">
+      <p class="stat-label">Hot leads</p>
+      <p class="kpi-value text-brand-400">${stats.hot.toLocaleString()}</p>
+      <p class="text-xs text-surface-500 mt-1">high intent &middot; call these first &rarr;</p>
+    </a>
+    <div class="kpi kpi-green">
+      <p class="stat-label">Last visitor</p>
+      <p class="font-display text-lg sm:text-xl font-bold text-white mt-3">${esc(stats.lastReceived)}</p>
+      <p class="text-xs text-surface-500 mt-1 flex items-center gap-1.5"><span class="livedot" style="width:6px;height:6px"></span> updates automatically</p>
     </div>
   </div>
 
+  <!-- Charts -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div class="card lg:col-span-2 flex flex-col">
+      <div class="mb-4">
+        <p class="stat-label">Visitors per day</p>
+        <p class="text-xs text-surface-500 mt-1">Identified people active on your site, last 30 days</p>
+      </div>
+      <div class="relative flex-1 min-h-[240px]"><canvas id="dailyChart"></canvas></div>
+    </div>
+    <div class="card">
+      <p class="stat-label mb-4">Top pages</p>
+      ${insights.topPages.length === 0 ? '<p class="text-sm text-surface-500">No page data yet.</p>' : `
+      <ul class="space-y-3">
+        ${insights.topPages.map(p => `
+        <li>
+          <div class="flex items-center justify-between gap-3 text-sm">
+            <span class="truncate text-surface-200 font-mono text-[12.5px]" title="${esc(p.label)}">${esc(p.label)}</span>
+            <span class="text-surface-400 tabular-nums">${p.count}</span>
+          </div>
+          <div class="meter mt-1.5"><span style="width:${Math.max(4, Math.round(p.count / insights.topPages[0].count * 100))}%"></span></div>
+        </li>`).join('')}
+      </ul>`}
+      ${insights.topCities.length ? `
+      <p class="stat-label mt-6 mb-3">Top locations</p>
+      <div class="flex flex-wrap gap-2">
+        ${insights.topCities.map(c => `<span class="badge badge-default">${esc(c.label)} <span class="ml-1.5 text-surface-400">${c.count}</span></span>`).join('')}
+      </div>` : ''}
+    </div>
+  </div>
+
+  <!-- Hot leads -->
+  ${hotLeads.length ? `
+  <div>
+    <div class="flex items-end justify-between mb-3">
+      <div>
+        <p class="eyebrow">Hot leads</p>
+        <p class="text-sm text-surface-400 mt-1">Highest buying intent right now: repeat visits, recent, viewed buying pages</p>
+      </div>
+      <a href="/visitors?tier=hot${pixelQs ? '&' + esc(pixelQs) : ''}" class="text-sm text-brand-400 hover:text-brand-300 hidden sm:inline">See all &rarr;</a>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+      ${hotLeads.map(h => `
+      <div class="card p-4 sm:p-5 hover:border-brand-500/30 transition-colors">
+        <div class="flex items-start gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-300 to-brand-600 text-[#1c0e00] font-display font-bold flex items-center justify-center flex-shrink-0">${esc(h.initials)}</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center justify-between gap-2">
+              <a href="/visitors/person/${esc(h.id)}${pixelQs ? '?' + esc(pixelQs) : ''}" class="font-display font-semibold text-surface-50 truncate hover:text-brand-300">${esc(h.name)}</a>
+              <span class="badge ${h.tier === 'hot' ? 'badge-hot' : 'badge-info'}">${h.score}</span>
+            </div>
+            <p class="text-xs text-surface-500 truncate">${esc(h.location || h.company || '')}${h.location || h.company ? ' &middot; ' : ''}${h.visits} visit${h.visits === 1 ? '' : 's'} &middot; ${esc(h.lastSeen)}</p>
+          </div>
+        </div>
+        <div class="meter mt-3"><span style="width:${h.score}%"></span></div>
+        ${h.lastPage ? `<p class="text-xs text-surface-400 mt-3 truncate">Viewed <a href="${esc(h.lastPage)}" target="_blank" rel="noopener noreferrer" class="font-mono text-brand-300 hover:underline">${esc(h.lastPageShort)}</a></p>` : ''}
+        <div class="flex gap-2 mt-3">
+          ${h.phone ? `<a href="tel:${esc(h.phone)}" class="btn btn-primary text-xs py-1.5 px-3 flex-1">Call</a>` : ''}
+          ${h.phone ? `<a href="sms:${esc(h.phone)}" class="btn btn-secondary text-xs py-1.5 px-3 flex-1">Text</a>` : ''}
+          ${h.email ? `<a href="mailto:${esc(h.email)}" class="btn btn-secondary text-xs py-1.5 px-3 flex-1">Email</a>` : ''}
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>` : ''}
+
   <!-- Filters -->
-  <div class="card">
-    <form action="/visitors" method="GET" class="flex flex-wrap gap-4">
-      <div class="flex-1 min-w-[200px]">
+  <div class="card p-4 sm:p-5">
+    <form action="/visitors" method="GET" class="grid grid-cols-2 md:grid-cols-6 gap-3 items-end">
+      ${isAdmin ? `<input type="hidden" name="pixel" value="${esc(pixelId)}">` : ''}
+      <div class="col-span-2">
         <label class="label">Search</label>
-        <input type="text" name="search" value="${esc(filters.search)}" placeholder="Name, email, phone, company, city" class="input">
+        <input type="text" name="search" value="${esc(filters.search)}" placeholder="Name, email, phone, company, city" class="input py-2.5">
       </div>
-      <div class="flex-1 min-w-[150px]">
+      <div>
+        <label class="label">Intent</label>
+        <select name="tier" class="input py-2.5">
+          <option value="" ${!filters.tier ? 'selected' : ''}>All</option>
+          <option value="hot" ${filters.tier === 'hot' ? 'selected' : ''}>Hot</option>
+          <option value="warm" ${filters.tier === 'warm' ? 'selected' : ''}>Warm</option>
+          <option value="cold" ${filters.tier === 'cold' ? 'selected' : ''}>Cold</option>
+        </select>
+      </div>
+      <div>
+        <label class="label">Sort</label>
+        <select name="sort" class="input py-2.5">
+          <option value="intent" ${filters.sort === 'intent' ? 'selected' : ''}>Intent score</option>
+          <option value="recent" ${filters.sort === 'recent' ? 'selected' : ''}>Most recent</option>
+        </select>
+      </div>
+      <div>
         <label class="label">From</label>
-        <input type="date" name="startDate" value="${esc(filters.startDate)}" class="input">
+        <input type="date" name="startDate" value="${esc(filters.startDate)}" class="input py-2.5">
       </div>
-      <div class="flex-1 min-w-[150px]">
+      <div>
         <label class="label">To</label>
-        <input type="date" name="endDate" value="${esc(filters.endDate)}" class="input">
+        <input type="date" name="endDate" value="${esc(filters.endDate)}" class="input py-2.5">
       </div>
-      <div class="flex items-end gap-2">
-        <button type="submit" class="btn btn-primary">Filter</button>
-        <a href="/visitors" class="btn btn-secondary">Clear</a>
+      <div class="col-span-2 md:col-span-6 flex items-center justify-between gap-2">
+        <p class="text-sm text-surface-400">${pagination.total.toLocaleString()} ${pagination.total === 1 ? 'person' : 'people'}</p>
+        <div class="flex gap-2">
+          <a href="/visitors${pixelQs ? '?' + esc(pixelQs) : ''}" class="btn btn-secondary text-sm py-2">Clear</a>
+          <button type="submit" class="btn btn-primary text-sm py-2">Apply</button>
+        </div>
       </div>
     </form>
   </div>
-
-  <p class="text-sm text-surface-400">Showing ${visitors.length} of ${pagination.total.toLocaleString()} visitors</p>
 
   <!-- Table -->
   <div class="table-container">
     <table class="table">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Phone</th>
+          <th>Person</th>
+          <th>Intent</th>
+          <th>Contact</th>
           <th>Location</th>
-          <th>Company</th>
           <th>Visits</th>
           <th>Last Seen</th>
           <th>Last Page Visited</th>
@@ -187,26 +276,39 @@
       </thead>
       <tbody>
         ${visitors.length === 0 ? `
-        <tr><td colspan="9" class="text-center py-12 text-surface-400">No visitors found</td></tr>
+        <tr><td colspan="8" class="text-center py-14 text-surface-400">No visitors match these filters</td></tr>
         ` : visitors.map(v => `
         <tr>
           <td>
-            <span class="font-medium text-surface-100">${esc(v.name)}</span>
-            ${v.jobTitle ? `<div class="text-xs text-surface-500">${esc(v.jobTitle)}</div>` : ''}
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-surface-800 border border-white/10 text-surface-200 text-xs font-display font-bold flex items-center justify-center flex-shrink-0">${esc(v.initials)}</div>
+              <div class="min-w-0">
+                <a href="/visitors/person/${esc(v.id)}${pixelQs ? '?' + esc(pixelQs) : ''}" class="font-medium text-surface-100 hover:text-brand-300">${esc(v.name)}</a>
+                ${v.jobTitle || v.company ? `<div class="text-xs text-surface-500 truncate max-w-[200px]">${esc([v.jobTitle, v.company].filter(Boolean).join(' · '))}</div>` : ''}
+              </div>
+            </div>
           </td>
-          <td>${v.email ? `<a href="mailto:${esc(v.email)}" class="text-brand-400 hover:underline">${esc(v.email)}</a>` : '<span class="text-surface-600">&mdash;</span>'}</td>
-          <td class="whitespace-nowrap">${v.phone ? `<a href="tel:${esc(v.phone)}" class="text-brand-400 hover:underline">${esc(v.phone)}</a>` : '<span class="text-surface-600">&mdash;</span>'}</td>
-          <td class="text-surface-300">${esc(v.location)}</td>
-          <td class="text-surface-300">${esc(v.company)}</td>
-          <td><span class="badge badge-info">${v.visits}</span></td>
+          <td class="whitespace-nowrap">
+            <div class="flex items-center gap-2">
+              <span class="badge ${v.tier === 'hot' ? 'badge-hot' : v.tier === 'warm' ? 'badge-info' : 'badge-default'}">${v.score}</span>
+              <span class="text-xs text-surface-500 capitalize">${v.tier}</span>
+            </div>
+          </td>
+          <td class="text-sm">
+            ${v.phone ? `<a href="tel:${esc(v.phone)}" class="block text-surface-200 hover:text-brand-300 whitespace-nowrap">${esc(v.phoneDisplay)}</a>` : ''}
+            ${v.email ? `<a href="mailto:${esc(v.email)}" class="block text-surface-400 hover:text-brand-300 truncate max-w-[220px]">${esc(v.email)}</a>` : ''}
+            ${!v.phone && !v.email ? '<span class="text-surface-600">&mdash;</span>' : ''}
+          </td>
+          <td class="text-surface-300 whitespace-nowrap">${esc(v.location) || '<span class="text-surface-600">&mdash;</span>'}</td>
+          <td class="tabular-nums text-surface-200">${v.visits}</td>
           <td class="whitespace-nowrap text-surface-300">${esc(v.lastSeen)}</td>
           <td class="max-w-[220px]">
             ${v.lastPage ? `
-            <a href="${esc(v.lastPage)}" target="_blank" rel="noopener noreferrer" class="text-brand-400 hover:underline text-sm block truncate" title="${esc(v.lastPage)}">${esc(v.lastPageShort)}</a>
+            <a href="${esc(v.lastPage)}" target="_blank" rel="noopener noreferrer" class="text-brand-300 hover:underline font-mono text-[12.5px] block truncate" title="${esc(v.lastPage)}">${esc(v.lastPageShort)}</a>
             ${v.pageCount > 1 ? `<span class="text-xs text-surface-500">+${v.pageCount - 1} more</span>` : ''}
             ` : '<span class="text-surface-600">&mdash;</span>'}
           </td>
-          <td><a href="/visitors/person/${esc(v.id)}${qs.indexOf('pixel=') >= 0 ? '?pixel=' + encodeURIComponent(pixelId) : ''}" class="btn btn-secondary text-sm py-1.5 px-3">View</a></td>
+          <td><a href="/visitors/person/${esc(v.id)}${pixelQs ? '?' + esc(pixelQs) : ''}" class="btn btn-secondary text-xs py-1.5 px-3">View</a></td>
         </tr>
         `).join('')}
       </tbody>
@@ -217,15 +319,63 @@
   ${pagination.totalPages > 1 ? `
   <div class="flex items-center justify-center gap-2">
     ${pagination.page > 1 ? `<a href="/visitors?${esc(qs)}${qs ? '&' : ''}page=${pagination.page - 1}" class="btn btn-secondary text-sm">Previous</a>` : ''}
-    <span class="text-sm text-surface-400">Page ${pagination.page} of ${pagination.totalPages}</span>
+    <span class="text-sm text-surface-400 font-mono">Page ${pagination.page} / ${pagination.totalPages}</span>
     ${pagination.page < pagination.totalPages ? `<a href="/visitors?${esc(qs)}${qs ? '&' : ''}page=${pagination.page + 1}" class="btn btn-secondary text-sm">Next</a>` : ''}
   </div>
   ` : ''}
 
-  <p class="text-xs text-surface-500">
-    Visitor data is provided for your own business follow-up only. Honor opt-out requests and follow applicable
-    privacy, email (CAN-SPAM) and calling/texting (TCPA) rules when contacting these people.
+  <p class="text-xs text-surface-500 leading-relaxed">
+    Intent score (0&ndash;100) weighs repeat visits, how recently they were on your site, and whether they viewed buying pages
+    like lease, specials, inventory, finance or contact. Use this data for your own business follow-up only: honor opt-out requests and follow
+    applicable privacy, email (CAN-SPAM) and calling/texting (TCPA) rules.
   </p>
+
+  <script type="application/json" id="viData">${insightsJson}</script>
+  <script>
+  (function () {
+    if (typeof Chart === 'undefined') return;
+    var d = JSON.parse(document.getElementById('viData').textContent);
+    var el = document.getElementById('dailyChart');
+    if (!el) return;
+    var ctx = el.getContext('2d');
+    var grad = ctx.createLinearGradient(0, 0, 0, 220);
+    grad.addColorStop(0, 'rgba(255,138,43,0.35)');
+    grad.addColorStop(1, 'rgba(255,138,43,0)');
+    Chart.defaults.color = '#909DAD';
+    Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: d.daily.labels,
+        datasets: [{
+          label: 'Visitors',
+          data: d.daily.data,
+          borderColor: '#FF8A2B',
+          backgroundColor: grad,
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          pointHoverBackgroundColor: '#FF8A2B'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: { backgroundColor: 'rgba(14,19,26,0.96)', borderColor: 'rgba(255,255,255,0.13)', borderWidth: 1, padding: 10, displayColors: false }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+          y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { precision: 0 } }
+        }
+      }
+    });
+  })();
+  </script>
   `}
 </div>
 ` }) %>

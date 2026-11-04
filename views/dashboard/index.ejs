@@ -2,7 +2,8 @@
 <div class="space-y-4 sm:space-y-5 lg:space-y-6 pb-6">
   <!-- Header -->
   <div class="page-header">
-    <h1 class="page-title">Analytics Dashboard</h1>
+    <p class="eyebrow">Calls</p>
+    <h1 class="page-title mt-2">Analytics Dashboard</h1>
     <p class="page-subtitle hidden sm:block">Monitor your voice agent performance</p>
   </div>
   
@@ -96,9 +97,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
           </svg>
         </div>
-        <span class="hidden sm:inline">Total </span>Calls
+        <span class="hidden sm:inline">Total&nbsp;</span>Calls
       </div>
-      <div class="text-lg sm:text-2xl lg:text-3xl font-bold text-white mt-1 sm:mt-2">${analytics.totalCalls.toLocaleString()}</div>
+      <div class="font-display text-lg sm:text-2xl lg:text-3xl font-bold text-white mt-1 sm:mt-2 tabular-nums">${analytics.totalCalls.toLocaleString()}</div>
     </div>
 
     <div class="stat-card p-3 sm:p-5">
@@ -108,9 +109,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
         </div>
-        <span class="hidden sm:inline">Avg </span>Duration
+        <span class="hidden sm:inline">Avg&nbsp;</span>Duration
       </div>
-      <div class="text-lg sm:text-2xl lg:text-3xl font-bold text-white mt-1 sm:mt-2">${formatDuration(analytics.avgDuration)}</div>
+      <div class="font-display text-lg sm:text-2xl lg:text-3xl font-bold text-white mt-1 sm:mt-2 tabular-nums">${formatDuration(analytics.avgDuration)}</div>
     </div>
 
     <div class="stat-card p-3 sm:p-5">
@@ -122,7 +123,7 @@
         </div>
         Latency
       </div>
-      <div class="text-lg sm:text-2xl lg:text-3xl font-bold text-white mt-1 sm:mt-2">${Math.round(analytics.avgLatency)}<span class="text-xs sm:text-base lg:text-lg text-surface-500 ml-0.5">ms</span></div>
+      <div class="font-display text-lg sm:text-2xl lg:text-3xl font-bold text-white mt-1 sm:mt-2 tabular-nums">${Math.round(analytics.avgLatency)}<span class="text-xs sm:text-base lg:text-lg text-surface-500 ml-0.5">ms</span></div>
     </div>
   </div>
 
@@ -406,8 +407,8 @@
   })();
 
   // Chart.js defaults
-  Chart.defaults.color = '#94a3b8';
-  Chart.defaults.borderColor = '#1e293b';
+  Chart.defaults.color = '#909DAD';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
   Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
   Chart.defaults.font.size = window.innerWidth < 640 ? 10 : 11;
 
@@ -417,18 +418,18 @@
 
   // Color palette matching Retell AI
   var colors = {
-    blue: 'rgb(96, 165, 250)',
-    blueAlpha: 'rgba(96, 165, 250, 0.15)',
-    orange: 'rgb(251, 146, 60)',
-    orangeAlpha: 'rgba(251, 146, 60, 0.15)',
-    cyan: 'rgb(34, 211, 238)',
-    cyanAlpha: 'rgba(34, 211, 238, 0.15)',
-    emerald: 'rgb(52, 211, 153)',
-    emeraldAlpha: 'rgba(52, 211, 153, 0.15)',
+    blue: 'rgb(255, 138, 43)',
+    blueAlpha: 'rgba(255, 138, 43, 0.15)',
+    orange: 'rgb(255, 177, 106)',
+    orangeAlpha: 'rgba(255, 177, 106, 0.15)',
+    cyan: 'rgb(47, 224, 138)',
+    cyanAlpha: 'rgba(47, 224, 138, 0.15)',
+    emerald: 'rgb(47, 224, 138)',
+    emeraldAlpha: 'rgba(47, 224, 138, 0.15)',
     red: 'rgb(248, 113, 113)',
     redAlpha: 'rgba(248, 113, 113, 0.15)',
-    purple: 'rgb(167, 139, 250)',
-    purpleAlpha: 'rgba(167, 139, 250, 0.15)',
+    purple: 'rgb(144, 157, 173)',
+    purpleAlpha: 'rgba(144, 157, 173, 0.15)',
     pink: 'rgb(244, 114, 182)',
     yellow: 'rgb(250, 204, 21)',
     indigo: 'rgb(129, 140, 248)',
@@ -438,10 +439,10 @@
   // Interactive tooltip configuration
   var interactiveTooltip = {
     enabled: true,
-    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    backgroundColor: 'rgba(14, 19, 26, 0.96)',
     titleColor: '#fff',
-    bodyColor: '#94a3b8',
-    borderColor: 'rgba(148, 163, 184, 0.2)',
+    bodyColor: '#909DAD',
+    borderColor: 'rgba(255, 255, 255, 0.13)',
     borderWidth: 1,
     padding: 12,
     cornerRadius: 8,
@@ -682,8 +683,8 @@
     createStackedBarChart(
       document.getElementById('callSuccessStackedChart'),
       [
-        { label: 'Successful', data: chartData.successfulByDate, backgroundColor: colors.blue, borderRadius: 2 },
-        { label: 'Unsuccessful', data: chartData.unsuccessfulByDate, backgroundColor: colors.cyan, borderRadius: 2 },
+        { label: 'Successful', data: chartData.successfulByDate, backgroundColor: colors.emerald, borderRadius: 2 },
+        { label: 'Unsuccessful', data: chartData.unsuccessfulByDate, backgroundColor: colors.blue, borderRadius: 2 },
         { label: 'Unknown', data: chartData.unknownByDate, backgroundColor: colors.purple, borderRadius: 2 }
       ],
       'callSuccessStackedContainer'

@@ -75,6 +75,12 @@ function pagesOf(v) {
   return url ? [{ url, at: v.lastSeen }] : [];
 }
 
+function fmtPhone(p) {
+  const d = String(p || '').replace(/\D/g, '');
+  const n = d.length === 11 && d[0] === '1' ? d.slice(1) : d;
+  return n.length === 10 ? '(' + n.slice(0, 3) + ') ' + n.slice(3, 6) + '-' + n.slice(6) : String(p || '');
+}
+
 function shortUrl(u) {
   if (!u) return '';
   try {
@@ -86,6 +92,91 @@ function shortUrl(u) {
   }
 }
 
+// Intent score 0-100: repeat visits, recency, and visiting buying pages.
+const HIGH_INTENT = /(lease|special|inventory|vehicle|vdp|finance|credit|apply|pre-?approv|trade|appointment|schedule|book|contact|quote|pric|deal|offer|checkout|service|repair)/i;
+
+function pathOf(u) {
+  try { const x = new URL(u); return (x.pathname || '/').replace(/\/+$/, '') || '/'; } catch (e) { return u || ''; }
+}
+
+function scoreVisitor(v, pages, now) {
+  let s = Math.min(v.visitCount || 1, 6) * 7;                    // up to 42
+  const days = v.lastSeen ? (now - new Date(v.lastSeen)) / 86400000 : 99;
+  s += days <= 1 ? 28 : days <= 3 ? 20 : days <= 7 ? 12 : days <= 14 ? 6 : 0; // up to 28
+  if (pages.some(p => HIGH_INTENT.test(pathOf(p.url)))) s += 20; // buying pages
+  s += Math.min(new Set(pages.map(p => pathOf(p.url))).size, 4) * 2.5; // up to 10
+  return Math.min(100, Math.round(s));
+}
+
+function tierOf(score) {
+  return score >= 65 ? 'hot' : score >= 40 ? 'warm' : 'cold';
+}
+
+function toRow(v, now) {
+  const pages = pagesOf(v);
+  const score = scoreVisitor(v, pages, now);
+  return {
+    id: String(v._id),
+    name: [v.firstName, v.lastName].filter(Boolean).join(' ') || 'Unknown',
+    initials: ((v.firstName || '?')[0] + ((v.lastName || '')[0] || '')).toUpperCase(),
+    email: v.email || '',
+    phone: v.phone || '',
+    phoneDisplay: fmtPhone(v.phone),
+    location: [v.city, v.state].filter(Boolean).join(', '),
+    company: v.company || '',
+    jobTitle: v.jobTitle || '',
+    visits: v.visitCount || 0,
+    lastPage: (pages[0] || {}).url || '',
+    lastPageShort: shortUrl((pages[0] || {}).url || ''),
+    lastSeen: fmtDate(v.lastSeen),
+    lastSeenTs: v.lastSeen ? new Date(v.lastSeen).getTime() : 0,
+    pageCount: pages.length,
+    score,
+    tier: tierOf(score),
+    _pages: pages,
+    _v: v
+  };
+}
+
+// Chart + insight data across the whole pixel
+function buildInsights(rows, now) {
+  const DAYS = 30;
+  const dayKey = (d) => new Date(d).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  const labels = [];
+  const counts = {};
+  for (let i = DAYS - 1; i >= 0; i--) {
+    const k = dayKey(now - i * 86400000);
+    labels.push(k);
+    counts[k] = 0;
+  }
+  const pageCounts = {};
+  const cityCounts = {};
+  for (const r of rows) {
+    const days = new Set();
+    for (const p of r._pages) if (p.at) days.add(dayKey(p.at));
+    if (!days.size && r._v.lastSeen) days.add(dayKey(r._v.lastSeen));
+    days.forEach(k => { if (k in counts) counts[k]++; });
+
+    new Set(r._pages.map(p => pathOf(p.url))).forEach(path => {
+      if (path) pageCounts[path] = (pageCounts[path] || 0) + 1;
+    });
+    if (r.location) cityCounts[r.location] = (cityCounts[r.location] || 0) + 1;
+  }
+  const top = (obj, n) => Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, c]) => ({ label: k, count: c }));
+  return {
+    daily: {
+      labels: labels.map(k => new Date(k + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+      data: labels.map(k => counts[k])
+    },
+    topPages: top(pageCounts, 7),
+    topCities: top(cityCounts, 6)
+  };
+}
+
+function safeJson(o) {
+  return JSON.stringify(o).replace(/</g, '\\u003c');
+}
+
 // List
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -93,48 +184,49 @@ router.get('/', requireAuth, async (req, res) => {
     const filters = {
       search: req.query.search || '',
       startDate: req.query.startDate || '',
-      endDate: req.query.endDate || ''
+      endDate: req.query.endDate || '',
+      sort: req.query.sort === 'recent' ? 'recent' : 'intent',
+      tier: ['hot', 'warm', 'cold'].includes(req.query.tier) ? req.query.tier : ''
     };
 
     if (!pixelId) {
       return res.render('visitors/index', {
         title: 'Website Visitors', esc, noPixel: true, visitors: [], stats: null,
         filters, pagination: { page: 1, totalPages: 1, total: 0 }, qs: '', pixelLabel: '',
-        isAdmin: user && user.role === 'admin', accounts: [], pixelId: ''
+        isAdmin: user && user.role === 'admin', accounts: [], pixelId: '', hotLeads: [], insightsJson: '{}', insights: null
       });
     }
 
-    const query = buildQuery(pixelId, req.query);
+    const now = Date.now();
     const page = Math.max(1, parseInt(req.query.page) || 1);
+    const hasFilter = !!(filters.search || filters.startDate || filters.endDate);
 
-    const weekAgo = new Date(Date.now() - 7 * 86400000);
-    const [total, rows, allTime, last7, newest] = await Promise.all([
-      PixelVisitor.countDocuments(query),
-      PixelVisitor.find(query).sort({ lastSeen: -1 }).skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE).lean(),
-      PixelVisitor.countDocuments({ pixelId }),
-      PixelVisitor.countDocuments({ pixelId, lastSeen: { $gte: weekAgo } }),
-      PixelVisitor.findOne({ pixelId }).sort({ lastSeen: -1 }).select('lastSeen').lean()
-    ]);
+    // Score in memory: a pixel holds thousands of people at most, which is cheap
+    const allDocs = await PixelVisitor.find({ pixelId }).limit(50000).lean();
+    const all = allDocs.map(v => toRow(v, now));
+    let matching = all;
+    if (hasFilter) {
+      const ids = new Set((await PixelVisitor.find(buildQuery(pixelId, req.query)).select('_id').lean()).map(d => String(d._id)));
+      matching = all.filter(r => ids.has(r.id));
+    }
+    if (filters.tier) matching = matching.filter(r => r.tier === filters.tier);
+    matching.sort(filters.sort === 'recent'
+      ? (a, b) => b.lastSeenTs - a.lastSeenTs
+      : (a, b) => (b.score - a.score) || (b.lastSeenTs - a.lastSeenTs));
 
-    const byTime = (pages) => (pages || []).slice().sort((a, b) => new Date(b.at) - new Date(a.at));
+    const total = matching.length;
+    const visitors = matching.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-    const visitors = rows.map(v => ({ v, pages: pagesOf(v) })).map(({ v, pages }) => ({
-      id: String(v._id),
-      name: [v.firstName, v.lastName].filter(Boolean).join(' ') || 'Unknown',
-      email: v.email || '',
-      phone: v.phone || '',
-      location: [v.city, v.state].filter(Boolean).join(', '),
-      company: v.company || '',
-      jobTitle: v.jobTitle || '',
-      visits: v.visitCount || 0,
-      lastPage: (pages[0] || {}).url || '',
-      lastPageShort: shortUrl((pages[0] || {}).url || ''),
-      lastSeen: fmtDate(v.lastSeen),
-      pageCount: pages.length
-    }));
+    const weekAgo = now - 7 * 86400000;
+    const newest = all.reduce((m, r) => Math.max(m, r.lastSeenTs), 0);
+    const hotAll = all.filter(r => r.tier === 'hot');
+    const hotLeads = all.slice().sort((a, b) => (b.score - a.score) || (b.lastSeenTs - a.lastSeenTs)).filter(r => r.tier !== 'cold').slice(0, 6);
+
+    const insights = buildInsights(all, now);
 
     const qsParams = new URLSearchParams();
-    for (const k of ['search', 'startDate', 'endDate']) if (filters[k]) qsParams.set(k, filters[k]);
+    for (const k of ['search', 'startDate', 'endDate', 'tier']) if (filters[k]) qsParams.set(k, filters[k]);
+    if (filters.sort !== 'intent') qsParams.set('sort', filters.sort);
     if (user.role === 'admin') qsParams.set('pixel', pixelId);
 
     res.render('visitors/index', {
@@ -142,9 +234,19 @@ router.get('/', requireAuth, async (req, res) => {
       esc,
       noPixel: false,
       visitors,
-      stats: { allTime, last7, lastReceived: newest ? fmtDate(newest.lastSeen) : 'No data yet' },
+      hotLeads,
+      insights,
+      insightsJson: safeJson(insights),
+      stats: {
+        allTime: all.length,
+        last7: all.filter(r => r.lastSeenTs >= weekAgo).length,
+        hot: hotAll.length,
+        withPhone: all.filter(r => r.phone).length,
+        lastReceived: newest ? fmtDate(newest) : 'No data yet'
+      },
       filters,
       qs: qsParams.toString(),
+      pixelQs: user.role === 'admin' ? 'pixel=' + encodeURIComponent(pixelId) : '',
       pixelLabel: label || '',
       accounts: accounts.map(a => ({ pixelId: a.assignedPixelId, name: a.name, label: a.pixelLabel || '' })),
       refreshed: req.query.refreshed === '1',
@@ -243,10 +345,12 @@ router.get('/person/:id', requireAuth, async (req, res) => {
       pixelQs: user.role === 'admin' ? '?pixel=' + encodeURIComponent(pixelId) : '',
       person: {
         name: [v.firstName, v.lastName].filter(Boolean).join(' ') || 'Unknown',
-        email: v.email || '', phone: v.phone || '',
+        email: v.email || '', phone: v.phone || '', phoneDisplay: fmtPhone(v.phone),
         address: [v.address, v.city, v.state, v.zip].filter(Boolean).join(', '),
         company: v.company || '', jobTitle: v.jobTitle || '', linkedin: v.linkedin || '',
-        visits: v.visitCount || 0, firstSeen: fmtDate(v.firstSeen), lastSeen: fmtDate(v.lastSeen)
+        visits: v.visitCount || 0, firstSeen: fmtDate(v.firstSeen), lastSeen: fmtDate(v.lastSeen),
+        score: scoreVisitor(v, pagesOf(v), Date.now()),
+        tier: tierOf(scoreVisitor(v, pagesOf(v), Date.now()))
       },
       pages,
       fields

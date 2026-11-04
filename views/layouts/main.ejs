@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> | DMI FLOW Dashboard</title>
+  <title><%= title %> | DMI Flow</title>
+  <meta name="theme-color" content="#0A0D12">
   <link rel="stylesheet" href="/css/output.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    ::-webkit-scrollbar-thumb { background: #2A3340; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4A5563; }
     
     /* Sidebar transition */
     .sidebar-expanded { width: 260px; }
@@ -33,17 +34,16 @@
     <div id="sidebarOverlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden hidden" onclick="toggleMobileSidebar()"></div>
     
     <!-- Sidebar -->
-    <aside id="sidebar" class="fixed lg:relative top-0 left-0 z-50 h-screen bg-surface-900 border-r border-surface-800/50 flex flex-col transition-all duration-300 ease-in-out transform -translate-x-full lg:translate-x-0 sidebar-expanded">
+    <aside id="sidebar" class="fixed lg:relative top-0 left-0 z-50 h-screen bg-surface-950/95 border-r border-white/[.07] flex flex-col transition-all duration-300 ease-in-out transform -translate-x-full lg:translate-x-0 sidebar-expanded">
       <!-- Logo -->
       <div class="flex items-center justify-between p-4 border-b border-surface-800/50 h-16">
         <div class="flex items-center gap-3 min-w-0">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center flex-shrink-0">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
+          <div class="w-9 h-9 rounded-xl bg-surface-800 border border-white/10 flex items-center justify-center flex-shrink-0">
+            <span class="livedot"></span>
           </div>
           <div class="logo-text min-w-0">
-            <h1 class="text-base font-bold text-white truncate">DMI FLOW Dashboard</h1>
+            <h1 class="font-display text-[17px] font-bold text-white truncate leading-tight">DMI&nbsp;Flow</h1>
+            <p class="font-mono text-[9.5px] font-bold uppercase tracking-[.2em] text-surface-500">Client Dashboard</p>
           </div>
         </div>
         <!-- Toggle Button (Desktop) -->
@@ -129,7 +129,7 @@
 
       <!-- User section -->
       <div class="user-section flex items-center gap-3 p-3 border-t border-surface-800/50">
-        <div class="user-avatar w-9 h-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+        <div class="user-avatar w-9 h-9 rounded-xl bg-gradient-to-br from-brand-300 to-brand-600 flex items-center justify-center text-[#1c0e00] text-sm font-semibold flex-shrink-0">
           <%= user.name.charAt(0).toUpperCase() %>
         </div>
         <div class="user-info flex-1 min-w-0">
@@ -154,14 +154,10 @@
           </svg>
         </button>
         <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
-            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-          </div>
-          <span class="font-semibold text-white text-sm">DMI FLOW Dashboard</span>
+          <span class="livedot"></span>
+          <span class="font-display font-bold text-white text-[15px]">DMI&nbsp;Flow</span>
         </div>
-        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-semibold">
+        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-300 to-brand-600 flex items-center justify-center text-[#1c0e00] text-xs font-semibold">
           <%= user.name.charAt(0).toUpperCase() %>
         </div>
       </header>

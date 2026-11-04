@@ -123,6 +123,34 @@
   </script>
   ` : ''}
 
+  ${isAdmin && sync ? `
+  <!-- Admin: AudienceLab sync status -->
+  <div class="card p-4 sm:p-5 ${sync.hits24 ? '' : 'border-brand-500/30'}">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <p class="stat-label">AudienceLab sync (admin only)</p>
+        ${sync.lastOkAt ? `
+        <p class="text-sm text-surface-200 mt-2 flex items-center gap-2"><span class="livedot"></span>Last data received <span class="font-semibold">${esc(sync.lastOkAt)}</span> &middot; ${sync.lastOkEvents} events, ${sync.lastOkStored} saved</p>
+        ` : `
+        <p class="text-sm text-brand-300 mt-2">AudienceLab has not sent any data to the webhook yet.</p>
+        `}
+        <p class="text-xs text-surface-500 mt-1">Last 24h: ${sync.hits24} deliveries &middot; ${sync.events24} events &middot; ${sync.stored24} saved${sync.rejected24 ? ' &middot; <span class="text-red-400">' + sync.rejected24 + ' rejected (wrong or missing secret in URL)</span>' : ''}${sync.errors24 ? ' &middot; <span class="text-red-400">' + sync.errors24 + ' errors</span>' : ''}${sync.probes24 ? ' &middot; ' + sync.probes24 + ' URL tests' : ''}</p>
+      </div>
+      ${sync.pixelsSeen.length ? `
+      <div class="text-xs">
+        <p class="stat-label mb-2">Pixel IDs AudienceLab is sending</p>
+        ${sync.pixelsSeen.map(p => `<p class="font-mono ${p.matches ? 'text-emerald-400' : 'text-surface-300'}">${esc(p.id)} <span class="text-surface-500">&middot; ${p.n} deliveries &middot; ${esc(p.last)}</span>${p.matches ? ' &check; this account' : ''}</p>`).join('')}
+        ${!sync.pixelsSeen.some(p => p.matches) ? '<p class="text-red-400 mt-1">None match this account&rsquo;s pixel ID. Re-assign the pixel on the Users page.</p>' : ''}
+      </div>` : ''}
+    </div>
+    ${sync.sampleKeys.length ? `
+    <details class="mt-3">
+      <summary class="text-xs text-surface-400 cursor-pointer">Fields in the last delivery (${sync.sampleKeys.length})</summary>
+      <p class="font-mono text-[11px] text-surface-400 mt-2 leading-relaxed break-words">${esc(sync.sampleKeys.join(', '))}</p>
+    </details>` : ''}
+  </div>
+  ` : ''}
+
   ${refreshed ? `
   <div class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2">
     <span class="livedot"></span>

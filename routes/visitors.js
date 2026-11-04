@@ -4,6 +4,7 @@ const { requireAuth } = require('../middleware/auth');
 const User = require('../models/User');
 const PixelVisitor = require('../models/PixelVisitor');
 const audiencelab = require('../services/audiencelab');
+const WebhookHit = require('../models/WebhookHit');
 
 const PAGE_SIZE = 50;
 
@@ -177,6 +178,34 @@ function safeJson(o) {
   return JSON.stringify(o).replace(/</g, '\\u003c');
 }
 
+// Admin-only: is AudienceLab actually calling the webhook, and for which pixels?
+async function syncStatus(pixelId) {
+  const dayAgo = new Date(Date.now() - 86400000);
+  const [last, lastOk, byStatus, pixelsSeen] = await Promise.all([
+    WebhookHit.findOne().sort({ at: -1 }).lean(),
+    WebhookHit.findOne({ status: 'ok' }).sort({ at: -1 }).lean(),
+    WebhookHit.aggregate([{ $match: { at: { $gte: dayAgo } } }, { $group: { _id: '$status', n: { $sum: 1 }, events: { $sum: '$events' }, stored: { $sum: '$stored' } } }]),
+    WebhookHit.aggregate([{ $match: { status: 'ok' } }, { $unwind: '$pixelIds' }, { $group: { _id: '$pixelIds', n: { $sum: 1 }, last: { $max: '$at' } } }, { $sort: { last: -1 } }, { $limit: 10 }])
+  ]);
+  const s = {};
+  byStatus.forEach(b => { s[b._id] = b; });
+  return {
+    lastAt: last ? fmtDate(last.at) : '',
+    lastStatus: last ? last.status : '',
+    lastOkAt: lastOk ? fmtDate(lastOk.at) : '',
+    lastOkEvents: lastOk ? lastOk.events : 0,
+    lastOkStored: lastOk ? lastOk.stored : 0,
+    sampleKeys: lastOk ? (lastOk.sampleKeys || []) : [],
+    hits24: (s.ok ? s.ok.n : 0),
+    events24: (s.ok ? s.ok.events : 0),
+    stored24: (s.ok ? s.ok.stored : 0),
+    rejected24: (s.unauthorized ? s.unauthorized.n : 0) + (s.missing_secret ? s.missing_secret.n : 0),
+    probes24: s.probe ? s.probe.n : 0,
+    errors24: s.error ? s.error.n : 0,
+    pixelsSeen: pixelsSeen.map(p => ({ id: p._id, n: p.n, last: fmtDate(p.last), matches: p._id === pixelId }))
+  };
+}
+
 // List
 router.get('/', requireAuth, async (req, res) => {
   try {
@@ -193,7 +222,7 @@ router.get('/', requireAuth, async (req, res) => {
       return res.render('visitors/index', {
         title: 'Website Visitors', esc, noPixel: true, visitors: [], stats: null,
         filters, pagination: { page: 1, totalPages: 1, total: 0 }, qs: '', pixelLabel: '',
-        isAdmin: user && user.role === 'admin', accounts: [], pixelId: '', hotLeads: [], insightsJson: '{}', insights: null
+        isAdmin: user && user.role === 'admin', accounts: [], pixelId: '', hotLeads: [], insightsJson: '{}', insights: null, sync: null
       });
     }
 
@@ -223,6 +252,10 @@ router.get('/', requireAuth, async (req, res) => {
     const hotLeads = all.slice().sort((a, b) => (b.score - a.score) || (b.lastSeenTs - a.lastSeenTs)).filter(r => r.tier !== 'cold').slice(0, 6);
 
     const insights = buildInsights(all, now);
+    let sync = null;
+    if (user.role === 'admin') {
+      try { sync = await syncStatus(pixelId); } catch (e) { console.error('Sync status error:', e.message); }
+    }
 
     const qsParams = new URLSearchParams();
     for (const k of ['search', 'startDate', 'endDate', 'tier']) if (filters[k]) qsParams.set(k, filters[k]);
@@ -237,6 +270,7 @@ router.get('/', requireAuth, async (req, res) => {
       hotLeads,
       insights,
       insightsJson: safeJson(insights),
+      sync,
       stats: {
         allTime: all.length,
         last7: all.filter(r => r.lastSeenTs >= weekAgo).length,

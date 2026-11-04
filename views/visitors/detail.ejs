@@ -24,13 +24,9 @@
         <div><p class="stat-label mb-1">Last seen</p><p class="text-surface-100">${esc(person.lastSeen)}</p></div>
       </div>
     </div>
-    <div class="flex flex-wrap gap-2 mt-5">
-      ${person.phone ? `<a href="tel:${esc(person.phone)}" class="btn btn-primary text-sm py-2">Call</a><a href="sms:${esc(person.phone)}" class="btn btn-secondary text-sm py-2">Text</a>` : ''}
-      ${person.email ? `<a href="mailto:${esc(person.email)}" class="btn btn-secondary text-sm py-2">Email</a>` : ''}
-    </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 text-sm">
-      <div><p class="stat-label mb-1">Email</p>${person.email ? `<a href="mailto:${esc(person.email)}" class="text-brand-400 hover:underline">${esc(person.email)}</a>` : '<p class="text-surface-600">&mdash;</p>'}</div>
-      <div><p class="stat-label mb-1">Phone</p>${person.phone ? `<a href="tel:${esc(person.phone)}" class="text-brand-400 hover:underline">${esc(person.phoneDisplay)}</a>` : '<p class="text-surface-600">&mdash;</p>'}</div>
+      <div><p class="stat-label mb-1">Email</p>${person.email ? `<p class="text-surface-100 select-all break-all">${esc(person.email)}</p>` : '<p class="text-surface-600">&mdash;</p>'}</div>
+      <div><p class="stat-label mb-1">Phone</p>${person.phone ? `<p class="text-surface-100 tabular-nums select-all">${esc(person.phoneDisplay)}</p>` : '<p class="text-surface-600">&mdash;</p>'}</div>
       <div><p class="stat-label mb-1">Address</p><p class="text-surface-200">${esc(person.address) || '&mdash;'}</p></div>
       <div><p class="stat-label mb-1">LinkedIn</p>${/^https?:/i.test(person.linkedin) ? `<a href="${esc(person.linkedin)}" target="_blank" rel="noopener noreferrer" class="text-brand-400 hover:underline break-all">${esc(person.linkedin)}</a>` : `<p class="text-surface-200">${esc(person.linkedin) || '&mdash;'}</p>`}</div>
     </div>

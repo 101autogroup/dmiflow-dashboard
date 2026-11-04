@@ -144,7 +144,7 @@
     <a href="/visitors?tier=hot${pixelQs ? '&' + esc(pixelQs) : ''}" class="kpi block hover:border-brand-500/40 transition-colors">
       <p class="stat-label">Hot leads</p>
       <p class="kpi-value text-brand-400">${stats.hot.toLocaleString()}</p>
-      <p class="text-xs text-surface-500 mt-1">high intent &middot; call these first &rarr;</p>
+      <p class="text-xs text-surface-500 mt-1">high intent &middot; view list &rarr;</p>
     </a>
     <div class="kpi kpi-green">
       <p class="stat-label">Last visitor</p>
@@ -208,11 +208,11 @@
         </div>
         <div class="meter mt-3"><span style="width:${h.score}%"></span></div>
         ${h.lastPage ? `<p class="text-xs text-surface-400 mt-3 truncate">Viewed <a href="${esc(h.lastPage)}" target="_blank" rel="noopener noreferrer" class="font-mono text-brand-300 hover:underline">${esc(h.lastPageShort)}</a></p>` : ''}
-        <div class="flex gap-2 mt-3">
-          ${h.phone ? `<a href="tel:${esc(h.phone)}" class="btn btn-primary text-xs py-1.5 px-3 flex-1">Call</a>` : ''}
-          ${h.phone ? `<a href="sms:${esc(h.phone)}" class="btn btn-secondary text-xs py-1.5 px-3 flex-1">Text</a>` : ''}
-          ${h.email ? `<a href="mailto:${esc(h.email)}" class="btn btn-secondary text-xs py-1.5 px-3 flex-1">Email</a>` : ''}
-        </div>
+        ${h.phone || h.email ? `
+        <div class="mt-3 pt-3 border-t border-white/[.06] space-y-1 text-xs">
+          ${h.phone ? `<p class="text-surface-200 tabular-nums select-all">${esc(h.phoneDisplay)}</p>` : ''}
+          ${h.email ? `<p class="text-surface-400 truncate select-all">${esc(h.email)}</p>` : ''}
+        </div>` : ''}
       </div>`).join('')}
     </div>
   </div>` : ''}
@@ -295,8 +295,8 @@
             </div>
           </td>
           <td class="text-sm">
-            ${v.phone ? `<a href="tel:${esc(v.phone)}" class="block text-surface-200 hover:text-brand-300 whitespace-nowrap">${esc(v.phoneDisplay)}</a>` : ''}
-            ${v.email ? `<a href="mailto:${esc(v.email)}" class="block text-surface-400 hover:text-brand-300 truncate max-w-[220px]">${esc(v.email)}</a>` : ''}
+            ${v.phone ? `<span class="block text-surface-200 whitespace-nowrap tabular-nums select-all">${esc(v.phoneDisplay)}</span>` : ''}
+            ${v.email ? `<span class="block text-surface-400 truncate max-w-[220px] select-all">${esc(v.email)}</span>` : ''}
             ${!v.phone && !v.email ? '<span class="text-surface-600">&mdash;</span>' : ''}
           </td>
           <td class="text-surface-300 whitespace-nowrap">${esc(v.location) || '<span class="text-surface-600">&mdash;</span>'}</td>
